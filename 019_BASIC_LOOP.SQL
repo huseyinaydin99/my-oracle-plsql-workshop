@@ -1,0 +1,23 @@
+DECLARE
+  SAYAC BINARY_INTEGER;
+BEGIN
+  SAYAC := NVL(SAYAC, 0);
+  LOOP
+    SAYAC := SAYAC + 1;
+    /*
+    IF MOD(SAYAC, 2) = 0 THEN
+      CONTINUE;
+    END IF;
+    */
+    DBMS_OUTPUT.PUT_LINE('SAYAC : ' || SAYAC);
+    CONTINUE WHEN MOD(SAYAC, 2) = 0;
+    /*
+    IF SAYAC = 5 THEN
+      EXIT;
+    END IF;
+    */
+    EXIT WHEN SAYAC = 5;
+  END LOOP;
+END;
+
+SET SERVEROUTPUT OFF;
