@@ -1,4 +1,4 @@
-# my-oracle-pl-sql-work
+# PL/SQL çalışmalarım.
 
 Procedural Language Extensions to SQL Oracle veritabanı içinde yer alan ve çalışan, SQL ile buyrukçu(procedural) dilin birleştirilmesiyle ortaya çıkmış şart blokları, döngüler, fonksiyonlar, prosedürler, tetikleyiciler, veri tipleri, temel veri yapıları gibi imkanları kullanmaya olanak sağlayan veritabanı dildir. PASCAL ve ADA dillerine söz dizimi olarak çok benzer. PL/SQL Oracle, IBM DB2 ve ismini şu an hatırlayamadığım bir veritabanıyla birlikte çalışır. Bir arayüz dili değildir bir veritabanı programlama dilidir. Bu repoda Oracle PL/SQL çalışmalarım yer almaktadır.
 ![20231230_135852](https://github.com/huseyinaydin99/my-oracle-pl-sql-work/assets/16438043/bd0bf8b8-8924-4509-9308-ae7ef2b21414)
