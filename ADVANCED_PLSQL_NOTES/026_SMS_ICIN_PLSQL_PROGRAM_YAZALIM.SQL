@@ -1,0 +1,55 @@
+CREATE OR REPLACE
+PACKAGE MOBILMESAJ
+IS
+    PROCEDURE SEND_SMS(
+        P_USERNAME    IN VARCHAR2,
+        P_PASSWORD    IN VARCHAR2,
+        P_SIRKET_KODU IN VARCHAR2,
+        P_MESSAGE     IN VARCHAR2,
+        P_TONUMBERS   IN VARCHAR2,
+        P_STATUS_CODE OUT NOCOPY VARCHAR2,
+        P_STATUS_TEXT OUT NOCOPY VARCHAR2
+    );
+END MOBILMESAJ;
+/
+CREATE OR REPLACE
+PACKAGE BODY MOBILMESAJ 
+IS
+    PROCEDURE SEND_SMS(
+        P_USERNAME    IN VARCHAR2,
+        P_PASSWORD    IN VARCHAR2,
+        P_SIRKET_KODU IN VARCHAR2,
+        P_MESSAGE     IN VARCHAR2,
+        P_TONUMBERS   IN VARCHAR2,
+        P_STATUS_CODE OUT NOCOPY VARCHAR2,
+        P_STATUS_TEXT OUT NOCOPY VARCHAR2
+    )
+    IS
+        SOAP_REQ_MSG VARCHAR2(32000);
+        SOAP_RESP_MSG VARCHAR2(32000);
+
+        HTTP_REQ  UTL_HTTP.REQ;
+        HTTP_RESP UTL_HTTP.RESP;
+        RESPONSEBODY CLOB := NULL;
+        BUFFER VARCHAR2(32767);
+        L_XMLTYPE XMLTYPE;
+    BEGIN
+        SOAP_REQ_MSG := REPLACE('http://api.iletimerkezi.com/v1/send-sms/get/?username=' || P_USERNAME || '@password=' || P_PASSWORD || '@text=' || REPLACE(P_MESSAGE, '', '%20') || '@receipents=' || P_TONUMBERS || '@sender=' || P_SIRKET_KODU, '@', '&');
+        HTTP_REQ := UTL_HTTP.BEGIN_REQUEST(SOAP_REQ_MSG, 'GET', 'HTTP/1.1');
+        UTL_HTTP.SET_HEADER(HTTP_REQ, 'Content-Type', 'Text/xml');
+        UTL_HTTP.SET_HEADER(HTTP_REQ, 'host', 'api.iletisimmerkezi.com');
+        UTL_HTTP.SET_HEADER(HTTP_REQ, 'connection', 'Keep_Alive');
+        UTL_HTTP.SET_HEADER(HTTP_REQ, 'User-Agent', 'Apache-HttpClient/4.1.1 (java 1.5)');
+        HTTP_RESP := UTL_HTTP.GET_RESPONSE(HTTP_REQ);
+        BEGIN
+            LOOP
+                UTL_HTTP.READ_TEXT(HTTP_RESP, BUFFER, 32766);
+                RESPONSEBODY := RESPONSEBODY || BUFFER;
+
+            END LOOP;
+            EXCEPTION WHEN UTL_HTTP.END_OF_BODY THEN
+                UTL_HTTP.END_RESPONSE(HTTP_RESP);
+        END;
+        L_XMLTYPE := XMLTYPE.CREATEXML(RESPONSEBODY);
+    END SEND_SMS;
+END MOBILMESAJ;
