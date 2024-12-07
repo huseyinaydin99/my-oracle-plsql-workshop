@@ -1,0 +1,20 @@
+sudo shutdown -h now
+Bu komut, sistemi hemen kapatır. -h seçeneği sistemi durdurmayı (halt) ve now ise işlemi hemen gerçekleştirmeyi belirtir. Eğer belirli bir zaman sonra kapatmak istersen, now yerine süre belirtebilirsin, örneğin:
+
+bash
+Kodu kopyala
+sudo shutdown -h +10
+Bu komut sistemi 10 dakika sonra kapatır.
+
+"Halt" kelimesi durdurmak anlamına gelir. 
+shutdown -h veya halt komutu, sistemi kapatır ancak bilgisayarın güç kaynağını kesmez. 
+Bu, sistemin tüm işlemlerini durdurur ve güvenli bir şekilde kapanmasını sağlar, ancak fiziksel olarak bilgisayarın gücünü kapatmaz.
+
+Oracle Linux'ta (ve genel olarak Unix benzeri sistemlerde) shutdown komutunu -h seçeneği olmadan kullanırsan, sistemin varsayılan olarak kapanma işlemini başlatır. Ancak, tam olarak ne yapılacağını belirtmek için ek seçenekler eklemek genellikle gereklidir. İşte bazı yaygın seçenekler:
+
+shutdown -h veya shutdown --halt: Sistemi kapatır.
+shutdown -r veya shutdown --reboot: Sistemi yeniden başlatır.
+shutdown -P veya shutdown --poweroff: Sistemi tamamen kapatır ve güç keser.
+Eğer hiçbir seçenek belirtmezsen ve sadece shutdown komutunu kullanırsan, 
+komut genellikle sistemin kapanacağını duyurur ve varsayılan olarak bir dakika sonra sistem kapanmaya başlar.
+Bu esnada kullanıcılar uyarılır ve işlemlerini sonlandırmak için zaman tanınır.

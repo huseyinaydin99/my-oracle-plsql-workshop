@@ -1,0 +1,354 @@
+LINUX ÜZERINE ORACLE DATABASE 19C KURULUMU
+
+(Aksi belirtilmedikçe tüm islemler root kullanicisyla yapilacak)
+
+(Windows tarafindan COPY-PASTE Yapabilmek için)
+DEVICE -- > INSERT GUEST ADDITIONS CD IMAGE ...  
+RESTART VIRTUAL MACHINE
+change resolution 1920 x1080
+
+1) HOST FILE DEGISIKLIGI
+
+vim /etc/hosts
+
+127.0.0.1       localhost localhost.localdomain localhost4 localhost4.localdomain4
+192.168.1.77    dbserver.localdomain  dbserver
+
+2) Kurulum Öncesi Hazirliklar 
+	A) Otomatik Setup
+		a) Database Kurulumu Öncesi bazi paketlerin otomatik yüklenmesi
+	   	   bazi klasörlerin ve dosyalarin otomatik olusturulmasi
+	   	   oracle kullanicisinin ve oracle gruplarinin otomatik olusturulmasi
+	   	   Ilgili klasörlere Oracle kullanicisinin otomatik yetkilendirilmesi
+	
+			dnf install -y oracle-database-preinstall-19c
+
+	 	b) Oracle Linux 8.7 ile ilgili güncellemelerin yüklenmesi
+
+			yum update -y
+
+	B) Manual Setup
+		a) /etc/sysctl.conf dosyasi içine gerekli parametrelerin eklenmesi
+			/etc/sysctl.conf dosyasini vi ya da vim ile edit edip 
+			asagidaki satirlari ekleyin.
+
+		   fs.file-max = 6815744
+		   kernel.sem = 250 32000 100 128
+		   kernel.shmmni = 4096
+		   kernel.shmall = 1073741824
+		   kernel.shmmax = 4398046511104
+		   kernel.panic_on_oops = 1
+		   net.core.rmem_default = 262144
+		   net.core.rmem_max = 4194304
+		   net.core.wmem_default = 262144
+		   net.core.wmem_max = 1048576
+		   net.ipv4.conf.all.rp_filter = 2
+		   net.ipv4.conf.default.rp_filter = 2
+		   fs.aio-max-nr = 1048576
+		   net.ipv4.ip_local_port_range = 9000 65500
+
+		b) Kernel Parametresinin Degistirilmesi 
+		(asagidaki ifadeyi komut satirina yazip çalistirin)
+	 
+		   $/sbin/sysctl
+
+		c) Oracle konfigurasyon Dosyasina Güvenlik Limitlerinin eklenmesi
+		   /etc/security/limits.d/oracle-database-preinstall-19c.conf dosyasini 
+			vi ya da vim ile edit edip asagidaki satirlari ekleyin.
+
+			oracle   soft   nofile    1024
+			oracle   hard   nofile    65536
+			oracle   soft   nproc    16384
+			oracle   hard   nproc    16384
+			oracle   soft   stack    10240
+			oracle   hard   stack    32768
+			oracle   hard   memlock    134217728
+			oracle   soft   memlock    134217728
+
+		d) Database Kurulumu Için Gerekli Paketlerin Yüklenmesi
+			Asagidaki satirlari kopyalayip komut satirina yapistirin 
+			ve yüklemenin bitmesini bekleyin.
+			Yükleme esnasinda soru sorarsa yes yazip devam edin.
+			
+			dnf install -y bc    
+			dnf install -y binutils
+			dnf install -y compat-libstdc++-33
+			dnf install -y elfutils-libelf
+			dnf install -y elfutils-libelf-devel
+			dnf install -y fontconfig-devel
+			dnf install -y glibc
+			dnf install -y glibc-devel
+			dnf install -y ksh
+			dnf install -y libaio
+			dnf install -y libaio-devel
+			dnf install -y libXrender
+			dnf install -y libXrender-devel
+			dnf install -y libX11
+			dnf install -y libXau
+			dnf install -y libXi
+			dnf install -y libXtst
+			dnf install -y libgcc
+			dnf install -y librdmacm-devel
+			dnf install -y libstdc++
+			dnf install -y libstdc++-devel
+			dnf install -y libxcb
+			dnf install -y make
+			dnf install -y net-tools # Clusterware
+			dnf install -y nfs-utils # ACFS
+			dnf install -y python # ACFS
+			dnf install -y python-configshell # ACFS
+			dnf install -y python-rtslib # ACFS
+			dnf install -y python-six # ACFS
+			dnf install -y targetcli # ACFS
+			dnf install -y smartmontools
+			dnf install -y sysstat
+			dnf install -y unixODBC
+			dnf install -y libnsl
+			dnf install -y libnsl.i686
+			dnf install -y libnsl2
+			dnf install -y libnsl2.i686
+
+		e) Yeni Gruplarin ve Kullanicin Olusturulmasi
+			Komut satirinda asagidaki satirlari tek tek çalistirin.
+			
+			groupadd -g 54321 oinstall
+			groupadd -g 54322 dba
+			groupadd -g 54323 oper
+			useradd -u 54321 -g oinstall -G dba,oper oracle
+
+***************
+NOT : (2) Maddedeki Otomatik Setup ya da Manual Setup'dan biri yapildiktan sonra
+Asagidaki (3) maddeden itibaren hepsi sirayla yapilmalidir.
+***************
+3) oracle kullanicisinin sifresinin tanimlanmasi
+	
+   (Komut satirinda asagidaki komutu yazip çalistirin)
+   
+	passwd oracle
+
+4) Linux Güvenlik Dosyasindaki SELINUX parametresinin degerini permissive yapin.
+
+	/etc/selinux/config dosyasini vi ya da vim ile edit edip
+
+	SELINUX=permissive yapin.
+	
+	Daha sonra komut satirinda asagidaki komutu çalistirin.
+
+	setenforce Permissive 
+
+5) FIREWALL Kapatilmasi
+	Komut satirinda asagidaki komutlari sirayla çalistirin. 
+	(Bu komutlar firewall'i stop edecek ve sanal makina kapatilip 
+	açildiginda firewall'i yeniden baslatmayacak.
+
+	systemctl stop firewalld
+	systemctl disable firewalld
+
+6) Database'in yüklenecegi klasörlerin olusturulmasi ve 
+	oracle kullanicisinin yetkilendirilmesi
+	Asagidaki komutlari komut satirina sirayla yazip çalistirin.
+
+	mkdir -p /u01/app/oracle/product/19.0.0/dbhome_1
+	mkdir -p /u02/oradata
+	chown -R oracle:oinstall /u01 /u02
+	chmod -R 775 /u01 /u02
+
+7) Eger Database Install islemini konsoldan degil de 
+	bir SSH (PUTTY) araciligiyla yapacaksaniz asagidaki komutu çalistirin.
+
+	xhost +dbserver.localdomain
+
+8) Start, stop, environment gibi islemleri yapacak scriptleri içinde 
+	tutacaginiz bir klasör olusturun.
+
+	mkdir /home/oracle/scripts
+
+9) Environment parametreleri otomatik set edecek setENV.sh isimli bir dosya 
+	olusturun.
+	(Asagidaki satirlari kopyalayip komut satirina yapistirin) 
+	(Veritabaninin ismini ORCL verdik. Farkli bir isim verdiyseniz 
+	o kisimlari degistirin) 
+	(Oracle Uniqname ve SID en fazla 8 karakter olmalidir)
+
+	cat > /home/oracle/scripts/setEnv.sh <<EOF
+	# Oracle Settings
+	export TMP=/tmp
+	export TMPDIR=\$TMP
+	export ORACLE_HOSTNAME=dbserver.localdomain
+	export ORACLE_UNQNAME=ORCL
+	export ORACLE_BASE=/u01/app/oracle
+	export ORACLE_HOME=\$ORACLE_BASE/product/19.0.0/dbhome_1
+	export ORA_INVENTORY=/u01/app/oraInventory
+	export ORACLE_SID=ORCL
+	export DATA_DIR=/u02/oradata
+	export PATH=/usr/sbin:/usr/local/bin:\$PATH
+	export PATH=\$ORACLE_HOME/bin:\$PATH
+	export LD_LIBRARY_PATH=\$ORACLE_HOME/lib:/lib:/usr/lib
+	export CLASSPATH=\$ORACLE_HOME/jlib:\$ORACLE_HOME/rdbms/jlib
+	EOF
+
+10) setEnv.sh dosyasinin .bash_profile içine eklenmesi
+	(Asagidaki komutu komut satirina yazip çalistirin)
+
+	echo ". /home/oracle/scripts/setEnv.sh" >> /home/oracle/.bash_profile
+
+11) Veritabaninin kapatilip açilmasini saglayan scriptlerin olusturulmasi.
+
+	a) start_all.sh sciptinin olusturulmasi. 
+	(Asagidaki satirlari komut satirina yapistirp çalistirin)
+
+		cat > /home/oracle/scripts/start_all.sh <<EOF
+		#!/bin/bash
+		. /home/oracle/scripts/setEnv.sh
+		export ORAENV_ASK=NO
+		. oraenv
+		export ORAENV_ASK=YES
+		dbstart \$ORACLE_HOME
+		EOF
+
+	b) stop_all.sh sciptinin olusturulmasi. 
+		(Asagidaki satirlari komut satirina yapistirip çalistirin)
+
+		cat > /home/oracle/scripts/stop_all.sh <<EOF
+		#!/bin/bash
+		. /home/oracle/scripts/setEnv.sh
+		export ORAENV_ASK=NO
+		. oraenv
+		export ORAENV_ASK=YES
+		dbshut \$ORACLE_HOME
+		EOF
+	c) scripts klasörünün owner'inin degistirilmesi ve 
+		bu klasör altindaki dosyalarin executable yapilmasi
+		(Asagidaki satirlari komut satirina yapistirp çalistirin)
+
+		chown -R oracle:oinstall /home/oracle/scripts
+		chmod u+x /home/oracle/scripts/*.sh
+
+DB INSTALL
+
+12) Download Oracle Database 19c For Linux
+
+13)	X Terminal yapmak için ((root ile)
+
+	export DISPLAY=:0.0
+	xhost +  
+
+
+Bu asamadan sonrasi oracle kullanicisiyla yapilacak
+
+14)	su - oracle
+
+15) mkdir /home/oracle/setup_files
+
+16) SETUP DOSYASINI WINDOWS'dan LINUX'a kopyala
+CMD
+cd C:\Users\Mehmet\Desktop\Setup_files
+scp LINUX.X64_193000_db_home.zip oracle@192.168.1.77:/home/oracle/setup_files
+
+scp spfileORCL.ora mehmet@192.168.1.65:C:\YEDEK
+
+Bu setup dosyasi ile isimiz bittiginde silinmelidir. 
+Sanal makinada gereksiz yere yer isgal eder.
+
+17) Setup Dosyasini UNZIP ediyoruz
+
+	cd $ORACLE_HOME
+
+	unzip -oq /home/oracle/setup_files/LINUX.X64_193000_db_home.zip
+
+	cat /etc/oracle-release
+
+18) Setup çalistiriyoruz. (Database Install 1 - Setup Software Only)
+
+	
+	cd $ORACLE_HOME
+	./runInstaller
+
+**** HATA ALINIRSA
+ERROR: Unable to verify the graphical display setup. 
+This application requires X display. Make sure that xdpyinfo exist 
+under PATH variable.
+
+No X11 DISPLAY variable was set, but this program performed 
+an operation which requires it.
+****
+
+export CV_ASSUME_DISTID=OEL7.6 //Oracle Linux'un 7.6 versiyonu gibi davranmasýný saðladýk ki hata vermesin çünkü oracle database dosyasý bu versiyonla uyumlu deðil.
+
+export DISPLAY=:0.0
+
+./runInstaller
+
+lsnrctl start
+
+dbca
+
+**
+sqlplus / as sysdba
+
+select name from v$database;
+
+startup
+
+HATA ALINIRSA
+
+ORA-01078: failure in processing system parameters hatasi alinirsa
+
+set ORACLE_SID=ORCL
+
+sqlplus / as sysdba
+
+********************
+
+shutdown immediate;
+
+sqlplus mesajlarini Ingilizce görmek için
+root ile
+vi /etc/profile
+
+NLS_LANG=AMERICAN_AMERICA.WE8MSWIN1252
+export NLS_LANG
+
+restart virtual machine
+***
+
+ALTER USER HR IDENTIFIED BY HR ACCOUNT UNLOCK;
+
+SQLcl Formatlari
+
+SELECT /*csv*/ * FROM emp;
+SELECT /*html*/ * FROM emp;
+SELECT /*xml*/ * FROM emp;
+SELECT /*json*/ * FROM emp;
+SELECT /*json-formatted*/ * FROM emp;
+SELECT /*ansiconsole*/ * FROM emp;
+SELECT /*insert*/ * FROM emp;
+SELECT /*loader*/ * FROM emp;
+SELECT /*fixed*/ * FROM emp;
+SELECT /*delimited*/ * FROM emp;
+SELECT /*text*/ * FROM emp;
+
+SET SQLFORMAT DEFAULT
+
+SET SQLFORMAT CSV
+
+SET SQLFORMAT HTML
+
+SET SQLFORMAT XML
+
+SET SQLFORMAT JSON-FORMATTED
+
+SET SQLFORMAT ANSICONSOLE
+
+SET SQLFORMAT INSERT
+
+SET SQLFORMAT LOADER
+
+SET SQLFORMAT FIXED
+
+SET SQLFORMAT DELIMITED ?? " "
+
+DDL EMPLOYEES
+
+
+
